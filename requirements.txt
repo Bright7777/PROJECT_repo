@@ -1,0 +1,12 @@
+Flask==3.0.0
+numpy
+scikit-learn
+joblib
+python-dotenv
+plotly
+openai
+Werkzeug
+Jinja2
+MarkupSafe
+itsdangerous
+click
