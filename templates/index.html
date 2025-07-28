@@ -336,10 +336,30 @@
             <h2 class="text-center mb-5">Prediction History</h2>
             <div class="card">
                 <div class="card-body">
+                    <!-- Bulk Actions Toolbar -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <button class="btn btn-outline-danger btn-sm" onclick="confirmClearAllHistory()" id="clearAllBtn" disabled>
+                                <i class="fas fa-trash-alt me-1"></i>Clear All History
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm ms-2" onclick="deleteSelectedHistory()" id="deleteSelectedBtn" disabled>
+                                <i class="fas fa-minus-circle me-1"></i>Delete Selected
+                            </button>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="loadHistory()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="table-responsive">
                         <table class="table table-striped" id="historyTable">
                             <thead>
                                 <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    </th>
                                     <th>Date</th>
                                     <th>Patient</th>
                                     <th>Disease Type</th>

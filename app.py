@@ -401,6 +401,64 @@ def generate_chatbot_response(message):
         You can ask me about symptoms, prevention, risk factors, or use our prediction tools for assessment. 
         Please note that this is for informational purposes only and doesn't replace professional medical advice."""
 
+@app.route('/delete_prediction/<int:prediction_id>', methods=['DELETE'])
+def delete_prediction(prediction_id):
+    try:
+        prediction = Prediction.query.get_or_404(prediction_id)
+        patient_name = prediction.patient_name
+        
+        db.session.delete(prediction)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Prediction for {patient_name} deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/clear_all_history', methods=['DELETE'])
+def clear_all_history():
+    try:
+        # Delete all predictions
+        num_deleted = Prediction.query.delete()
+        
+        # Also clear chat history if you want
+        ChatHistory.query.delete()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'All prediction history cleared successfully. {num_deleted} records deleted.'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/delete_selected_predictions', methods=['DELETE'])
+def delete_selected_predictions():
+    try:
+        data = request.get_json()
+        prediction_ids = data.get('prediction_ids', [])
+        
+        if not prediction_ids:
+            return jsonify({'error': 'No prediction IDs provided'}), 400
+        
+        # Delete selected predictions
+        num_deleted = Prediction.query.filter(Prediction.id.in_(prediction_ids)).delete(synchronize_session=False)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{num_deleted} prediction(s) deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/generate_report/<int:prediction_id>')
 def generate_report(prediction_id):
     try:

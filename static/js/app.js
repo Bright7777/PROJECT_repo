@@ -261,10 +261,18 @@ function displayHistory(history) {
     const tbody = document.querySelector('#historyTable tbody');
     tbody.innerHTML = '';
     
+    // Update bulk action buttons
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    
     if (history.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No predictions yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No predictions yet</td></tr>';
+        clearAllBtn.disabled = true;
+        deleteSelectedBtn.disabled = true;
         return;
     }
+    
+    clearAllBtn.disabled = false;
     
     history.forEach(record => {
         const row = document.createElement('tr');
@@ -273,6 +281,9 @@ function displayHistory(history) {
         const confidencePercentage = (record.confidence * 100).toFixed(1);
         
         row.innerHTML = `
+            <td>
+                <input type="checkbox" class="row-checkbox" value="${record.id}" onchange="updateDeleteSelectedButton()">
+            </td>
             <td>${date}</td>
             <td>${record.patient_name}</td>
             <td>${record.disease_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
@@ -288,14 +299,144 @@ function displayHistory(history) {
                 </div>
             </td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="downloadReport(${record.id})">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="downloadReport(${record.id})">
                     <i class="fas fa-download me-1"></i>Report
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeletePrediction(${record.id}, '${record.patient_name}')">
+                    <i class="fas fa-trash me-1"></i>Delete
                 </button>
             </td>
         `;
         
         tbody.appendChild(row);
     });
+}
+
+// Toggle select all checkboxes
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateDeleteSelectedButton();
+}
+
+// Update delete selected button state
+function updateDeleteSelectedButton() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const selectAll = document.getElementById('selectAll');
+    
+    deleteSelectedBtn.disabled = checkboxes.length === 0;
+    
+    // Update select all checkbox state
+    const allCheckboxes = document.querySelectorAll('.row-checkbox');
+    if (allCheckboxes.length > 0) {
+        selectAll.indeterminate = checkboxes.length > 0 && checkboxes.length < allCheckboxes.length;
+        selectAll.checked = checkboxes.length === allCheckboxes.length;
+    }
+}
+
+// Confirm single prediction deletion
+function confirmDeletePrediction(predictionId, patientName) {
+    if (confirm(`Are you sure you want to delete the prediction for ${patientName}? This action cannot be undone.`)) {
+        deletePrediction(predictionId);
+    }
+}
+
+// Delete single prediction
+async function deletePrediction(predictionId) {
+    try {
+        const response = await fetch(`/delete_prediction/${predictionId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            alert(result.message || 'Prediction deleted successfully');
+            loadHistory(); // Reload the history table
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to delete prediction');
+        }
+    } catch (error) {
+        console.error('Error deleting prediction:', error);
+        alert('An error occurred while deleting the prediction');
+    }
+}
+
+// Confirm clear all history
+function confirmClearAllHistory() {
+    if (confirm('Are you sure you want to delete ALL prediction history? This action cannot be undone and will permanently remove all patient records.')) {
+        clearAllHistory();
+    }
+}
+
+// Clear all history
+async function clearAllHistory() {
+    try {
+        const response = await fetch('/clear_all_history', {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            alert(result.message || 'All prediction history cleared successfully');
+            loadHistory(); // Reload the history table
+            
+            // Reset checkboxes
+            document.getElementById('selectAll').checked = false;
+            updateDeleteSelectedButton();
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to clear history');
+        }
+    } catch (error) {
+        console.error('Error clearing history:', error);
+        alert('An error occurred while clearing history');
+    }
+}
+
+// Delete selected predictions
+async function deleteSelectedHistory() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (selectedIds.length === 0) {
+        alert('Please select at least one prediction to delete');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} selected prediction(s)? This action cannot be undone.`)) {
+        try {
+            const response = await fetch('/delete_selected_predictions', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prediction_ids: selectedIds })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                alert(result.message || 'Selected predictions deleted successfully');
+                loadHistory(); // Reload the history table
+                
+                // Reset checkboxes
+                document.getElementById('selectAll').checked = false;
+                updateDeleteSelectedButton();
+            } else {
+                const error = await response.json();
+                alert(error.error || 'Failed to delete selected predictions');
+            }
+        } catch (error) {
+            console.error('Error deleting selected predictions:', error);
+            alert('An error occurred while deleting selected predictions');
+        }
+    }
 }
 
 // Download report
