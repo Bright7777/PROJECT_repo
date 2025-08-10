@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bus Booking</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="logo">WTS</span>
+        <span class="subtitle">WIN TRANSPORT SERVICES</span>
+      </div>
+      <div class="route" id="routeTitle">Takoradi to Knust</div>
+      <div class="date" id="routeDate">(24th May, 2025)</div>
+    </header>
+
+    <main class="container">
+      <section id="tripSection" class="card">
+        <div class="trip-grid">
+          <div class="trip-item">
+            <div class="icon">📍</div>
+            <div>
+              <div class="label">Pickup Point</div>
+              <div id="pickupPoint" class="value">Takoradi Mall</div>
+            </div>
+          </div>
+          <div class="trip-item">
+            <div class="icon">🗓️</div>
+            <div>
+              <div class="label">Reporting Time</div>
+              <div id="reportingTime" class="value">5:00 am</div>
+            </div>
+          </div>
+          <div class="trip-item">
+            <div class="icon">⏰</div>
+            <div>
+              <div class="label">Departure Time</div>
+              <div id="departureTime" class="value">6:00 am</div>
+            </div>
+          </div>
+          <div class="trip-item">
+            <div class="icon">💺</div>
+            <div>
+              <div class="label">Seats Available</div>
+              <div class="value"><span id="totalSeats">44</span> total • <span id="availableSeats">44</span> available</div>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="startBooking" class="btn btn-primary">Book Now</button>
+        </div>
+      </section>
+
+      <section id="loadingSection" class="card hidden center">
+        <div class="loading">
+          <div class="bus-emoji">🚌</div>
+          <div>Loading...</div>
+        </div>
+      </section>
+
+      <section id="seatsSection" class="card hidden">
+        <h2 class="section-title">Select Seats</h2>
+        <div id="seatsGrid" class="seats-grid"></div>
+        <div class="summary">
+          <div class="info">
+            <strong>Bus Info</strong>
+            <div class="muted">Some info about the bus and the trip.</div>
+            <div class="kv"><span>Date</span><span id="infoDate">24th May, 2025</span></div>
+            <div class="kv"><span>Time</span><span id="infoTime">6:30 am</span></div>
+            <div class="kv"><span>Fare</span><span id="infoFare">GHS 172.00 / seat</span></div>
+          </div>
+          <div class="cart">
+            <table class="cart-table" id="cartTable">
+              <thead>
+                <tr><th>Seat</th><th>Fare</th><th>Delete</th></tr>
+              </thead>
+              <tbody id="cartBody"></tbody>
+              <tfoot>
+                <tr class="total"><td>Total</td><td id="cartTotal" colspan="2">GHS 0.00</td></tr>
+              </tfoot>
+            </table>
+            <div class="actions">
+              <button id="proceedDetails" class="btn btn-primary" disabled>Proceed</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="detailsSection" class="card hidden">
+        <h2 class="section-title">Traveller Details</h2>
+        <form id="detailsForm" class="details-form">
+          <div class="grid-2">
+            <label> Name
+              <input name="name" placeholder="Your name" required />
+            </label>
+            <label> Email
+              <input type="email" name="email" placeholder="example@email.com" required />
+            </label>
+            <label> Contact No
+              <input name="contact" placeholder="Phone number" required />
+            </label>
+            <label> Residence
+              <input name="residence" placeholder="City / Town" />
+            </label>
+            <label> Gender
+              <select name="gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label> Kin Name
+              <input name="kinName" placeholder="Next of kin" />
+            </label>
+            <label> Kin Contact No
+              <input name="kinContact" placeholder="Next of kin phone" />
+            </label>
+          </div>
+
+          <div class="summary">
+            <div class="info">
+              <strong>Seats</strong>
+              <table class="cart-table">
+                <thead><tr><th>Seat</th><th>Fare</th><th>Delete</th></tr></thead>
+                <tbody id="cartBody2"></tbody>
+              </table>
+              <div class="muted" id="feesNote">Additional Charges of GHS 2.00</div>
+            </div>
+            <div class="actions">
+              <button type="submit" id="payBtn" class="btn btn-primary">Pay</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section id="receiptSection" class="card hidden center">
+        <div class="receipt">
+          <div class="big">✅ Payment Successful</div>
+          <div id="receiptText" class="muted"></div>
+          <div class="actions">
+            <button id="newBooking" class="btn">New Booking</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">© <span id="year"></span> WIN Transport Services</footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
