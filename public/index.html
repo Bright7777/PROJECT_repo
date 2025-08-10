@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bus Booking</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #f6f8fa; }
+    header { background: #0f766e; color: white; padding: 16px 24px; }
+    main { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 16px; margin-bottom: 16px; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    input, select, button { padding: 10px 12px; border-radius: 8px; border: 1px solid #d0d7de; font-size: 14px; }
+    button { background: #0f766e; color: white; cursor: pointer; border: none; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    .seats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+    .seat { padding: 10px; text-align: center; border-radius: 8px; border: 1px solid #d0d7de; cursor: pointer; user-select: none; }
+    .seat.available { background: #f0fdf4; }
+    .seat.unavailable { background: #fee2e2; cursor: not-allowed; }
+    .seat.selected { background: #0ea5e9; color: white; }
+    .legend { display: flex; gap: 12px; font-size: 12px; margin-top: 8px; color: #475569; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .pill { display: inline-block; width: 16px; height: 16px; border-radius: 4px; border: 1px solid #d0d7de; }
+
+    .fare { font-weight: 700; color: #0f766e; }
+    .error { color: #b91c1c; }
+    .success { color: #065f46; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bus Booking</h1>
+    <div style="opacity:0.9">Choose your bus, date, and seats (up to 45)</div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="row">
+        <div>
+          <label for="bus">Bus</label>
+          <select id="bus"></select>
+        </div>
+        <div>
+          <label for="date">Travel date</label>
+          <input type="date" id="date" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="check">Check availability</button>
+        </div>
+      </div>
+      <div id="busInfo" style="margin-top:10px;color:#475569"></div>
+    </section>
+
+    <section class="card" id="availabilityCard" style="display:none">
+      <div>
+        <strong>Seat selection</strong>
+        <div class="legend">
+          <span><span class="pill" style="background:#f0fdf4"></span>Available</span>
+          <span><span class="pill" style="background:#fee2e2"></span>Booked</span>
+          <span><span class="pill" style="background:#0ea5e9"></span>Selected</span>
+        </div>
+      </div>
+      <div id="seats" class="seats"></div>
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          Selected seats: <span id="selectedList">-</span>
+        </div>
+        <div class="fare">
+          Total fare: <span id="totalFare">$0.00</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="bookingCard" style="display:none">
+      <div class="row">
+        <div>
+          <label for="name">Your name</label>
+          <input id="name" placeholder="Jane Doe" />
+        </div>
+        <div>
+          <label for="phone">Phone</label>
+          <input id="phone" placeholder="+123456789" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="book">Book seats</button>
+        </div>
+      </div>
+      <div id="status" style="margin-top:10px"></div>
+    </section>
+  </main>
+
+  <script>
+    const busSelect = document.getElementById('bus');
+    const dateInput = document.getElementById('date');
+    const checkBtn = document.getElementById('check');
+    const busInfo = document.getElementById('busInfo');
+    const availabilityCard = document.getElementById('availabilityCard');
+    const bookingCard = document.getElementById('bookingCard');
+    const seatsDiv = document.getElementById('seats');
+    const selectedList = document.getElementById('selectedList');
+    const totalFare = document.getElementById('totalFare');
+    const nameInput = document.getElementById('name');
+    const phoneInput = document.getElementById('phone');
+    const bookBtn = document.getElementById('book');
+    const statusDiv = document.getElementById('status');
+
+    let buses = [];
+    let selectedBus = null;
+    let currentTripId = null;
+    let fareCents = 0;
+    let selectedSeats = new Set();
+
+    async function loadBuses() {
+      const res = await fetch('/api/buses');
+      buses = await res.json();
+      busSelect.innerHTML = buses.map(b => `<option value="${b.id}">${b.name} (${b.origin} → ${b.destination})</option>`).join('');
+      if (buses.length) {
+        selectedBus = buses[0];
+        updateBusInfo();
+      }
+    }
+
+    function updateBusInfo() {
+      const id = Number(busSelect.value);
+      selectedBus = buses.find(b => b.id === id);
+      if (!selectedBus) return;
+      fareCents = selectedBus.fare_cents;
+      busInfo.textContent = `${selectedBus.name}: ${selectedBus.origin} → ${selectedBus.destination} | Departs ${selectedBus.departure_time} • Arrives ${selectedBus.arrival_time} | Fare ${(fareCents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})}`;
+    }
+
+    busSelect.addEventListener('change', updateBusInfo);
+
+    function renderSeats(seats) {
+      seatsDiv.innerHTML = '';
+      seats.forEach(s => {
+        const div = document.createElement('div');
+        div.className = `seat ${s.available ? 'available' : 'unavailable'}`;
+        div.textContent = s.number;
+        if (s.available) {
+          div.addEventListener('click', () => {
+            if (selectedSeats.has(s.number)) {
+              selectedSeats.delete(s.number);
+              div.classList.remove('selected');
+            } else {
+              selectedSeats.add(s.number);
+              div.classList.add('selected');
+            }
+            updateSelectionDisplay();
+          });
+        }
+        seatsDiv.appendChild(div);
+      });
+    }
+
+    function updateSelectionDisplay() {
+      const arr = Array.from(selectedSeats).sort((a,b)=>a-b);
+      selectedList.textContent = arr.length ? arr.join(', ') : '-';
+      const total = (arr.length * fareCents) / 100;
+      totalFare.textContent = total.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+      bookingCard.style.display = arr.length ? 'block' : 'none';
+    }
+
+    checkBtn.addEventListener('click', async () => {
+      statusDiv.textContent = '';
+      statusDiv.className = '';
+      selectedSeats.clear();
+      updateSelectionDisplay();
+      const id = Number(busSelect.value);
+      const date = dateInput.value;
+      if (!date) {
+        alert('Please choose a travel date');
+        return;
+      }
+      const url = `/api/availability?busId=${id}&date=${encodeURIComponent(date)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        availabilityCard.style.display = 'none';
+        const data = await res.json().catch(()=>({error:'Failed to fetch'}));
+        alert(data.error || 'Failed to fetch availability');
+        return;
+      }
+      const data = await res.json();
+      currentTripId = data.tripId;
+      availabilityCard.style.display = 'block';
+      renderSeats(data.seats);
+    });
+
+    bookBtn.addEventListener('click', async () => {
+      const id = Number(busSelect.value);
+      const date = dateInput.value;
+      const seatNumbers = Array.from(selectedSeats);
+      const payload = {
+        busId: id,
+        date,
+        customerName: nameInput.value.trim(),
+        customerPhone: phoneInput.value.trim(),
+        seatNumbers,
+      };
+      if (!payload.customerName || !payload.customerPhone || seatNumbers.length === 0) {
+        statusDiv.textContent = 'Please fill in name, phone, and select seats.';
+        statusDiv.className = 'error';
+        return;
+      }
+      bookBtn.disabled = true;
+      statusDiv.textContent = 'Booking...';
+      statusDiv.className = '';
+      try {
+        const res = await fetch('/api/book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Booking failed');
+        statusDiv.textContent = `Success! Seats booked: ${data.seatsBooked.join(', ')}`;
+        statusDiv.className = 'success';
+        selectedSeats.clear();
+        updateSelectionDisplay();
+        // refresh availability
+        document.getElementById('check').click();
+      } catch (e) {
+        statusDiv.textContent = e.message;
+        statusDiv.className = 'error';
+      } finally {
+        bookBtn.disabled = false;
+      }
+    });
+
+    // init
+    loadBuses();
+    const today = new Date().toISOString().slice(0,10);
+    dateInput.value = today;
+  </script>
+</body>
+</html>
